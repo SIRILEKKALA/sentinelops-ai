@@ -64,15 +64,6 @@ npm run dev
 
 ---
 
-## 📈 Future Work
-
-* Deterministic agent workflows
-* Real cloud integrations (AWS/GCP APIs)
-* Advanced anomaly detection
-* Backend persistence
-
----
-
 ## 📄 License
 
 MIT License
