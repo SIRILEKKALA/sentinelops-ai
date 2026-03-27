@@ -145,6 +145,26 @@ export default function App() {
   const [isActivating, setIsActivating] = useState(false);
   const [activationMessage, setActivationMessage] = useState('');
   const [auditHistory, setAuditHistory] = useState<AuditHistoryItem[]>([]);
+  const [liveMetrics, setLiveMetrics] = useState({
+    apiLoad: 12,
+    dbLoad: 45,
+    authLoad: 89,
+    workerLoad: 22,
+    responseTime: 124
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveMetrics(prev => ({
+        apiLoad: Math.max(5, Math.min(95, prev.apiLoad + (Math.random() * 4 - 2))),
+        dbLoad: Math.max(5, Math.min(95, prev.dbLoad + (Math.random() * 4 - 2))),
+        authLoad: Math.max(5, Math.min(95, prev.authLoad + (Math.random() * 4 - 2))),
+        workerLoad: Math.max(5, Math.min(95, prev.workerLoad + (Math.random() * 6 - 3))),
+        responseTime: Math.max(20, Math.min(500, prev.responseTime + (Math.random() * 10 - 5)))
+      }));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('auditHistory');
@@ -226,6 +246,56 @@ export default function App() {
       distribution,
       costTrend,
       loadIncrease: Math.round(loadIncrease)
+    };
+  }, [result]);
+
+  const monitoringData = useMemo(() => {
+    if (!result) return {
+      uptime: 99.99,
+      responseTime: 42,
+      alerts: 0,
+      insight: "System performing within optimal parameters.",
+      services: [
+        { name: 'API Gateway', region: 'us-east-1', status: 'Operational', color: 'bg-emerald-500' },
+        { name: 'Primary Database', region: 'us-east-1', status: 'Operational', color: 'bg-emerald-500' },
+        { name: 'Auth Service', region: 'eu-west-1', status: 'Operational', color: 'bg-emerald-500' },
+        { name: 'Static Assets (CDN)', region: 'Global', status: 'Operational', color: 'bg-emerald-500' },
+        { name: 'Worker Nodes', region: 'us-west-2', status: 'Operational', color: 'bg-emerald-500' },
+      ],
+      alertList: []
+    };
+
+    const highIssues = result.issues.filter(i => i.priority === 'High');
+    const totalIssues = result.issues.length;
+    
+    const uptime = Math.max(92.4, 99.99 - (highIssues.length * 1.2) - (totalIssues * 0.2));
+    const baseResponseTime = 35 + (highIssues.length * 45) + (totalIssues * 8);
+    
+    const hasLatency = result.issues.some(i => i.title.toLowerCase().includes('latency') || i.explanation.toLowerCase().includes('latency'));
+    const hasDbRisk = result.issues.some(i => i.title.toLowerCase().includes('database') || i.category === 'Security');
+    const hasAuthIssue = result.issues.some(i => i.title.toLowerCase().includes('auth') || i.title.toLowerCase().includes('login'));
+
+    const services = [
+      { name: 'API Gateway', region: 'us-east-1', status: hasLatency ? 'Degraded' : 'Operational', color: hasLatency ? 'bg-amber-500' : 'bg-emerald-500' },
+      { name: 'Primary Database', region: 'us-east-1', status: hasDbRisk ? 'Warning' : 'Operational', color: hasDbRisk ? 'bg-rose-500' : 'bg-emerald-500' },
+      { name: 'Auth Service', region: 'eu-west-1', status: hasAuthIssue ? 'Degraded' : 'Operational', color: hasAuthIssue ? 'bg-amber-500' : 'bg-emerald-500' },
+      { name: 'Static Assets (CDN)', region: 'Global', status: 'Operational', color: 'bg-emerald-500' },
+      { name: 'Worker Nodes', region: 'us-west-2', status: totalIssues > 15 ? 'Degraded' : 'Operational', color: totalIssues > 15 ? 'bg-amber-500' : 'bg-emerald-500' },
+    ];
+
+    const alertList = highIssues.map(i => i.title);
+    if (hasLatency) alertList.push("Latency spike detected in API Gateway");
+    if (hasDbRisk) alertList.push("Database security vulnerability detected");
+
+    return {
+      uptime: Number(uptime.toFixed(2)),
+      responseTime: Math.round(baseResponseTime),
+      alerts: alertList.length,
+      insight: hasLatency ? "Increased latency detected in API Gateway during peak hours" : 
+               hasDbRisk ? "Security anomalies detected in database access patterns" :
+               "System stability is currently impacted by detected infrastructure issues.",
+      services,
+      alertList: alertList.slice(0, 3)
     };
   }, [result]);
 
@@ -877,13 +947,42 @@ export default function App() {
 
   const renderMonitoring = () => (
     <div className="space-y-8">
+      {/* AI Insight Banner */}
+      <div className="bg-blue-600 rounded-3xl p-6 text-white shadow-xl shadow-blue-600/20 flex items-center justify-between relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <Zap className="w-32 h-32" />
+        </div>
+        <div className="relative z-10 flex items-center gap-6">
+          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+            <Lightbulb className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-blue-100">AI Insight</span>
+              <span className="px-2 py-0.5 bg-white/20 rounded text-[10px] font-black uppercase tracking-widest text-white">Live</span>
+            </div>
+            <p className="text-lg font-bold">{monitoringData.insight}</p>
+          </div>
+        </div>
+        <div className="relative z-10">
+          <span className="px-3 py-1 bg-white text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">AI-Powered Monitoring</span>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="dashboard-card p-6 border-l-4 border-l-emerald-500">
           <div className="flex items-center gap-3 mb-2">
             <Activity className="w-5 h-5 text-emerald-500" />
             <h4 className="font-bold text-slate-900">System Uptime</h4>
           </div>
-          <p className="text-3xl font-bold text-slate-900">99.98%</p>
+          <motion.p 
+            key={monitoringData.uptime}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-3xl font-bold text-slate-900"
+          >
+            {monitoringData.uptime}%
+          </motion.p>
           <p className="text-xs text-slate-500 mt-1">Last 30 days</p>
         </div>
         <div className="dashboard-card p-6 border-l-4 border-l-blue-500">
@@ -891,49 +990,165 @@ export default function App() {
             <Clock className="w-5 h-5 text-blue-500" />
             <h4 className="font-bold text-slate-900">Avg Response</h4>
           </div>
-          <p className="text-3xl font-bold text-slate-900">124ms</p>
-          <p className="text-xs text-slate-500 mt-1">-12ms from last week</p>
+          <motion.p 
+            key={liveMetrics.responseTime}
+            initial={{ opacity: 0, x: 5 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="text-3xl font-bold text-slate-900"
+          >
+            {Math.round(monitoringData.responseTime + (liveMetrics.responseTime - 124) * 0.1)}ms
+          </motion.p>
+          <p className="text-xs text-slate-500 mt-1">Real-time latency tracking</p>
         </div>
         <div className="dashboard-card p-6 border-l-4 border-l-rose-500">
           <div className="flex items-center gap-3 mb-2">
             <ShieldAlert className="w-5 h-5 text-rose-500" />
             <h4 className="font-bold text-slate-900">Active Alerts</h4>
           </div>
-          <p className="text-3xl font-bold text-slate-900">2</p>
-          <p className="text-xs text-slate-500 mt-1">Requires attention</p>
+          <p className="text-3xl font-bold text-slate-900">{monitoringData.alerts}</p>
+          <p className="text-xs text-slate-500 mt-1">{monitoringData.alerts > 0 ? 'Requires immediate attention' : 'No critical alerts'}</p>
         </div>
       </div>
 
-      <div className="dashboard-card p-6">
-        <h3 className="font-bold text-slate-900 mb-6">Service Status</h3>
-        <div className="space-y-6">
-          {[
-            { name: 'API Gateway', region: 'us-east-1', status: 'Operational', load: '12%', color: 'bg-emerald-500' },
-            { name: 'Primary Database', region: 'us-east-1', status: 'Operational', load: '45%', color: 'bg-emerald-500' },
-            { name: 'Auth Service', region: 'eu-west-1', status: 'Degraded', load: '89%', color: 'bg-amber-500' },
-            { name: 'Static Assets (CDN)', region: 'Global', status: 'Operational', load: '4%', color: 'bg-emerald-500' },
-            { name: 'Worker Nodes', region: 'us-west-2', status: 'Operational', load: '22%', color: 'bg-emerald-500' },
-          ].map((service, i) => (
-            <div key={i} className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`w-2 h-2 rounded-full ${service.color} animate-pulse`}></div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">{service.name}</p>
-                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">{service.region}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="dashboard-card p-8">
+            <h3 className="font-bold text-slate-900 mb-8 flex items-center gap-3">
+              Service Status
+              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded">All Regions</span>
+            </h3>
+            <div className="space-y-8">
+              {monitoringData.services.map((service, i) => {
+                const load = i === 0 ? liveMetrics.apiLoad : 
+                             i === 1 ? liveMetrics.dbLoad :
+                             i === 2 ? liveMetrics.authLoad :
+                             i === 4 ? liveMetrics.workerLoad : 4;
+                return (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-5">
+                      <div className={`w-3 h-3 rounded-full ${service.color} animate-pulse shadow-lg shadow-current/20`}></div>
+                      <div>
+                        <p className="text-base font-bold text-slate-900">{service.name}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{service.region}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-12">
+                      <div className="text-right">
+                        <p className={`text-sm font-black uppercase tracking-widest ${
+                          service.status === 'Operational' ? 'text-emerald-600' : 
+                          service.status === 'Warning' ? 'text-rose-600' : 'text-amber-600'
+                        }`}>{service.status}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Status</p>
+                      </div>
+                      <div className="w-32">
+                        <div className="flex justify-between mb-1.5">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Load</span>
+                          <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{Math.round(load)}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${load}%` }}
+                            className={`h-full ${load > 80 ? 'bg-rose-500' : load > 60 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                          ></motion.div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Alerts Section */}
+          <div className="dashboard-card p-8">
+            <h3 className="font-bold text-slate-900 mb-6">Active Alerts</h3>
+            <div className="space-y-4">
+              {monitoringData.alertList.length > 0 ? (
+                monitoringData.alertList.map((alert, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 bg-rose-50 border border-rose-100 rounded-2xl">
+                    <div className="p-2 bg-rose-500 rounded-xl">
+                      <ShieldAlert className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-rose-900">{alert}</p>
+                      <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">Detected by AI Agent</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center">
+                  <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">System Healthy</p>
+                  <p className="text-xs text-slate-500">No active alerts detected</p>
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          {/* AI Agent Status Panel */}
+          <div className="dashboard-card p-8 bg-slate-900 text-white border-none shadow-2xl shadow-blue-600/10">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-600/30">
+                <Cpu className="w-6 h-6 text-white" />
               </div>
-              <div className="flex items-center gap-8">
-                <div className="text-right">
-                  <p className="text-xs font-bold text-slate-700">{service.status}</p>
-                  <p className="text-[10px] text-slate-400">Status</p>
-                </div>
-                <div className="w-24 text-right">
-                  <p className="text-xs font-bold text-slate-700">{service.load}</p>
-                  <p className="text-[10px] text-slate-400">Current Load</p>
+              <div>
+                <h3 className="text-xl font-bold">AI Agent Activity</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Monitoring Active</span>
                 </div>
               </div>
             </div>
-          ))}
+            <div className="space-y-6">
+              {[
+                { name: 'Agent 1', task: 'Monitoring API latency', status: 'Running' },
+                { name: 'Agent 2', task: 'Checking database performance', status: 'Running' },
+                { name: 'Agent 3', task: 'Detecting cost anomalies', status: 'Running' },
+                { name: 'Agent 4', task: 'Validating security configs', status: 'Running' },
+              ].map((agent, i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600/20 flex items-center justify-center">
+                      <Terminal className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">{agent.name}</p>
+                      <p className="text-[10px] text-slate-400 font-medium">{agent.task}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">{agent.status}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 pt-8 border-t border-white/10">
+              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <span>Total Agents</span>
+                <span className="text-white">04</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="dashboard-card p-8">
+            <h3 className="font-bold text-slate-900 mb-6">Network Traffic</h3>
+            <div className="flex items-center justify-center py-8">
+              <div className="relative w-32 h-32">
+                <div className="absolute inset-0 border-8 border-slate-50 rounded-full"></div>
+                <div className="absolute inset-0 border-8 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-slate-900">84%</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Load</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-center text-slate-500 font-medium">Traffic is currently distributed across 3 global regions.</p>
+          </div>
         </div>
       </div>
     </div>
