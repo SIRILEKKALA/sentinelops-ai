@@ -37,7 +37,7 @@ It moves beyond traditional monitoring by identifying **root causes** and sugges
 ### Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/sentinelops-ai.git
+git clone https://github.com/SIRILEKKALA/sentinelops-ai.git
 cd sentinelops-ai
 ```
 
