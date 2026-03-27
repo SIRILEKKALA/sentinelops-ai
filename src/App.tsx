@@ -827,11 +827,11 @@ export default function App() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Full Name</label>
-              <input type="text" defaultValue="Siri Lekkala" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+              <input type="text" defaultValue="System Admin" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</label>
-              <input type="email" defaultValue="sirilekkala2007@gmail.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+              <input type="email" defaultValue="admin@sentinelops.ai" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
             </div>
           </div>
           <div className="space-y-1">
@@ -938,7 +938,7 @@ export default function App() {
       case 'history': return { title: 'Audit History', sub: 'Review your past infrastructure reports.' };
       case 'analytics': return { title: 'Analytics', sub: 'Detailed insights into your cloud performance.' };
       case 'monitoring': return { title: 'Live Monitoring', sub: 'Real-time infrastructure health tracking.' };
-      case 'settings': return { title: 'Settings', sub: 'Configure your auditor preferences.' };
+      case 'settings': return { title: 'Settings', sub: 'Configure your SentinelOps preferences.' };
       case 'support': return { title: 'Support', sub: 'Get expert help with your architecture.' };
     }
   };
@@ -953,7 +953,7 @@ export default function App() {
           <div className="bg-blue-600 p-1.5 rounded-lg">
             <Cpu className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-lg tracking-tight">SystemAuditor</span>
+          <span className="font-bold text-lg tracking-tight">SentinelOps AI</span>
         </div>
 
         <nav className="flex-grow px-4 space-y-1">
@@ -1022,6 +1022,10 @@ export default function App() {
             <span className="text-slate-900 capitalize">{activeTab.replace('-', ' ')}</span>
           </div>
           <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-100 rounded-full">
+              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></div>
+              <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Demo Environment</span>
+            </div>
             <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors relative">
               <Bell className="w-5 h-5" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
