@@ -92,17 +92,48 @@ const StatCard = ({ label, value, icon: Icon, color, trend }: { label: string, v
         <Icon className="w-6 h-6" />
       </div>
       {trend && (
-        <span className={`text-[10px] font-black px-2 py-1 rounded-full shadow-sm ${trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+        <motion.span 
+          key={trend}
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`text-[10px] font-black px-2 py-1 rounded-full shadow-sm ${trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}
+        >
           {trend}
-        </span>
+        </motion.span>
       )}
     </div>
     <div>
       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-3xl font-black text-slate-900 tracking-tight">{value}</p>
+      <motion.p 
+        key={value}
+        initial={{ opacity: 0, x: -5 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="text-3xl font-black text-slate-900 tracking-tight"
+      >
+        {value}
+      </motion.p>
     </div>
   </div>
 );
+
+const getTimeAgo = (dateStr: string) => {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 0) return 'just now';
+    if (diffInSeconds < 60) return 'just now';
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
+  } catch (e) {
+    return dateStr;
+  }
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('audit'); // Default to audit for better demo
@@ -234,17 +265,72 @@ export default function App() {
     }
   };
 
+  const dashboardStats = useMemo(() => {
+    if (auditHistory.length === 0) return {
+      totalAudits: "0",
+      criticalRisks: "0",
+      costSavings: "$0",
+      avgHealth: "100%",
+      lastAudit: "Never"
+    };
+    
+    const totalAudits = auditHistory.length;
+    const criticalRisks = auditHistory.filter(h => h.status === 'Critical').length;
+    
+    // Calculate cost savings from the latest audit
+    const latestAudit = auditHistory[0];
+    const latestIssues = latestAudit.data.issues;
+    const savings = latestIssues.reduce((acc, issue) => {
+      if (issue.priority === 'High') return acc + 450;
+      if (issue.priority === 'Medium') return acc + 150;
+      return acc + 50;
+    }, 0);
+    
+    // Avg Health
+    const healthMap: Record<string, number> = { 'Critical': 45, 'Fair': 75, 'Good': 95 };
+    const totalHealth = auditHistory.reduce((acc, h) => acc + (healthMap[h.status] || 70), 0);
+    const avgHealth = Math.round(totalHealth / totalAudits);
+    
+    return {
+      totalAudits: totalAudits.toString(),
+      criticalRisks: criticalRisks.toString(),
+      costSavings: `$${(savings / 1000).toFixed(1)}k`,
+      avgHealth: `${avgHealth}%`,
+      lastAudit: getTimeAgo(latestAudit.date)
+    };
+  }, [auditHistory]);
+
   const renderDashboard = () => (
     <div className="space-y-10">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Total Audits" value={isAdvancedMode ? "42" : "24"} icon={History} color="bg-blue-50 text-blue-600" trend={isAdvancedMode ? "+18" : "+12%"} />
-        <StatCard label="Critical Risks" value={isAdvancedMode ? "12" : "3"} icon={ShieldAlert} color="bg-rose-50 text-rose-600" trend={isAdvancedMode ? "+9" : "-2"} />
-        <StatCard label="Cost Savings" value={isAdvancedMode ? "$28.1k" : "$12.4k"} icon={DollarSign} color="bg-emerald-50 text-emerald-600" trend={isAdvancedMode ? "+$15.7k" : "+$2.1k"} />
-        <StatCard label="Avg Health" value={isAdvancedMode ? "62%" : "84%"} icon={Activity} color="bg-amber-50 text-amber-600" trend={isAdvancedMode ? "-22%" : "+5%"} />
+        <StatCard label="Total Audits" value={dashboardStats.totalAudits} icon={History} color="bg-blue-50 text-blue-600" trend={auditHistory.length > 0 ? `+${auditHistory.length}` : undefined} />
+        <StatCard label="Critical Risks" value={dashboardStats.criticalRisks} icon={ShieldAlert} color="bg-rose-50 text-rose-600" trend={dashboardStats.criticalRisks !== "0" ? `+${dashboardStats.criticalRisks}` : undefined} />
+        <StatCard label="Cost Savings" value={dashboardStats.costSavings} icon={DollarSign} color="bg-emerald-50 text-emerald-600" trend={auditHistory.length > 0 ? "+$2.1k" : undefined} />
+        <StatCard label="Avg Health" value={dashboardStats.avgHealth} icon={Activity} color="bg-amber-50 text-amber-600" trend={auditHistory.length > 0 ? "Stable" : undefined} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
+          <div className="dashboard-card p-6 bg-white border-none shadow-xl shadow-slate-200/40 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-slate-100 rounded-lg">
+                <Clock className="w-4 h-4 text-slate-500" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Last Audit Performed</p>
+                <p className="text-sm font-bold text-slate-900">{dashboardStats.lastAudit}</p>
+              </div>
+            </div>
+            {auditHistory.length === 0 && (
+              <button 
+                onClick={() => setActiveTab('audit')}
+                className="text-xs font-bold text-blue-600 hover:underline"
+              >
+                Run your first audit to see insights →
+              </button>
+            )}
+          </div>
+
           {isAdvancedMode && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
@@ -289,28 +375,62 @@ export default function App() {
           <div className="dashboard-card p-8 border-none shadow-xl shadow-slate-200/40">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-xl font-bold text-slate-900">Recent Activity</h3>
-              <button className="text-xs font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-colors">View All Reports</button>
+              <button 
+                onClick={() => setActiveTab('history')}
+                className="text-xs font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-colors"
+              >
+                View All Reports
+              </button>
             </div>
             <div className="space-y-6">
-              {[
-                { title: 'AWS Infrastructure Audit', date: '2 hours ago', status: 'Critical', color: 'text-rose-600', bg: 'bg-rose-50' },
-                { title: 'GCP Kubernetes Review', date: '5 hours ago', status: 'Healthy', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                { title: 'Azure Cost Optimization', date: 'Yesterday', status: 'Fair', color: 'text-amber-600', bg: 'bg-amber-50' },
-                { title: 'On-premise Security Scan', date: '2 days ago', status: 'Critical', color: 'text-rose-600', bg: 'bg-rose-50' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-all duration-300 border border-transparent hover:border-slate-100 group">
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all">
-                      <Cloud className="w-6 h-6 text-slate-400" />
-                    </div>
-                    <div>
-                      <p className="text-base font-bold text-slate-900">{item.title}</p>
-                      <p className="text-xs font-medium text-slate-400">{item.date}</p>
-                    </div>
+              {auditHistory.length === 0 ? (
+                <div className="py-12 text-center">
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Terminal className="w-8 h-8 text-slate-300" />
                   </div>
-                  <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${item.bg} ${item.color}`}>{item.status}</span>
+                  <p className="text-sm font-bold text-slate-900">No audits yet</p>
+                  <p className="text-xs text-slate-500 mt-1">Run your first audit to see insights</p>
+                  <button 
+                    onClick={() => setActiveTab('audit')}
+                    className="mt-4 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    Start Audit Now
+                  </button>
                 </div>
-              ))}
+              ) : (
+                auditHistory.map((item, i) => (
+                  <button 
+                    key={item.id} 
+                    onClick={() => {
+                      setResult(item.data);
+                      setActiveTab('audit');
+                    }}
+                    className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 transition-all group border border-transparent hover:border-slate-100"
+                  >
+                    <div className="flex items-center gap-4 text-left">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${
+                        item.status === 'Critical' ? 'bg-rose-50 text-rose-600' : 
+                        item.status === 'Fair' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+                      }`}>
+                        {item.status === 'Critical' ? 'CR' : item.status === 'Fair' ? 'FR' : 'GD'}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{item.name}</p>
+                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">{getTimeAgo(item.date)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${
+                        item.status === 'Critical' ? 'bg-rose-50 text-rose-600' : 
+                        item.status === 'Fair' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+                      }`}>
+                        {item.status}
+                      </span>
+                      <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 transition-colors" />
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>
