@@ -1,20 +1,78 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 🚀 SentinelOps AI
 
-# Run and deploy your AI Studio app
+**Autonomous AI agents for real-time infrastructure auditing and optimization.**
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/d110a265-2a73-4f3c-91f5-a7983278b9e9
+## 🧠 Overview
 
-## Run Locally
+SentinelOps AI is an agent-driven system that analyzes infrastructure, detects critical issues, and provides actionable recommendations.
 
-**Prerequisites:**  Node.js
+It moves beyond traditional monitoring by identifying **root causes** and suggesting **precise optimizations**.
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## ✨ Features
+
+* Multi-agent AI analysis (performance, cost, security, reliability)
+* Real-time system auditing
+* Actionable recommendations with impact
+* Full System Mode (simulated continuous monitoring)
+* Audit History (localStorage-based)
+* Dynamic analytics dashboard
+
+---
+
+## ⚙️ Tech Stack
+
+* React + TypeScript + Vite
+* Tailwind CSS
+* Gemini API
+* LocalStorage (state persistence)
+
+---
+
+## 🚀 Getting Started
+
+### Clone the repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/sentinelops-ai.git
+cd sentinelops-ai
+```
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Run the app
+
+```bash
+npm run dev
+```
+
+---
+
+## 🧪 Demo
+
+1. Click **Run Sample Audit**
+2. Review detected issues
+3. Enable **Full System Mode**
+4. Check **Audit History** and **Analytics**
+
+---
+
+## 📈 Future Work
+
+* Deterministic agent workflows
+* Real cloud integrations (AWS/GCP APIs)
+* Advanced anomaly detection
+* Backend persistence
+
+---
+
+## 📄 License
+
+MIT License
